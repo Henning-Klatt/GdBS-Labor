@@ -58,24 +58,21 @@ class Shell {
                     int[] status = new int[10];
                     int options = 0;
                     int wait = waitpid(pids, status, options);
-                
-                  	System.out.println("Exit Status Child: " + status[0]);
+
+                    System.out.println("Exit Status Child: " + status[0]);
 
                     // Success
                     if (status[0] == 0) {
-						
+
                     }
                     // Failure
                     else {
-						break;
+                        break;
                     }
-
-                    
                 }
-
             }
         }
     }
-
 }
+
 
