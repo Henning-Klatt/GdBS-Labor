@@ -52,23 +52,35 @@ class Shell {
 
                     System.out.println("Child: " + pids);
 
-                    // cat abc > xyz    # wirkt wie "cp abc xyz"
+                    // /bin/cat abc > xyz    # wirkt wie "cp abc xyz"
                     if(command.contains(">")){
                         String[] splitArray = command.split(" > ");
+
+                        // STDout close:
+                        int stdfd = close(1);
+
                         // int open(String path, int flags)
                         int fd = open(splitArray[splitArray.length-1], O_WRONLY | O_CREAT);
-                        System.out.println("Öffne Datei: " + splitArray[splitArray.length-1]);
                         int result = execute(splitArray[0]);
-                        // Ergebnis von execute in buf schreiben
-                        byte[] buf;
-                        int read(1, byte[] buf, int count)
+
                         // int write(int fd, byte[] buf, int count)
-                        int writeresult = write(fd, )
+                        int closeresult = close(fd);
 
                     }
+                    // /bin/cat < abc    # Inhalt der Datei abc wird auf dem Terminal ausgegeben
                     if(command.contains("<")){
                         String[] splitArray = command.split(" < ");
-                        int fd = open(splitArray[0], O_RDONLY);
+
+                        // close STDin with fd = 0
+                        int stdfd = close(0);
+                        File f = new File(splitArray[splitArray.length-1]);
+                        if (!f.exists() || f.isDirectory()) {
+                            System.out.println("Datei (" + splitArray[splitArray.length-1] + ") nicht vorhanden");
+                            exit(0);
+                        }
+                        int fd = open(splitArray[splitArray.length-1], O_RDONLY);
+                        int result = execute(splitArray[0]);
+                        int closeresult = close(fd);
 
                     }
                     if(command.contains("-")){
