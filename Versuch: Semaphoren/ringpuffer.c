@@ -37,6 +37,8 @@ void stop_animation(void) {
 // alle unbedingt mit "volatile" !!!
 //-----------------------------------------------------------------------------
 
+volatile semaphore mutex_semaphor;
+
 // der ringpuffer:
 
 #define SIZE 5
@@ -69,7 +71,9 @@ void test_setup(void) {
 
   
   // zur Fehlererkennung
-  sum=0; 
+  sum=0;
+
+  mutex_semaphor = sem_init(1); 
 
   // dient der Visualisierung
   start_animation();
@@ -102,15 +106,15 @@ void writer(long my_id) {
   for (i=1; i<=NUMBERS_CREATED_PER_WRITER; i++) {
 
     // busy wait:
-    while ((ringpuffer.schreib_index+1)%SIZE==ringpuffer.lese_index) {
+    // while ((ringpuffer.schreib_index+1)%SIZE==ringpuffer.lese_index) {
        //do nothing
-    }
-
+    // }
+    sem_p(mutex_semaphor);
     ringpuffer.feld[ringpuffer.schreib_index] = i;
     ringpuffer.schreib_index = (ringpuffer.schreib_index + 1) % SIZE;
 
-
     show_animation(1, my_id, i);
+    sem_v(mutex_semaphor);
   }
 }
 
