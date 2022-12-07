@@ -8,6 +8,7 @@
 
 // AUFGABENSTELLUNG:
 // Bringen Sie diese Programm mittels Semaphoren in Ordnung.
+// https://de.wikipedia.org/wiki/Philosophenproblem
 
 //-----------------------------------------------------------------------------
 // alle globalen variablen fuer die beiden worker hier definieren,
@@ -16,6 +17,8 @@
 
 volatile int staebchen[5]={1,1,1,1,1};
 volatile int have_one[5]={0,0,0,0,0}; // nur zur deadlock erkennung
+volatile semaphore mutex_semaphor; // Semaphore
+//mutex_semaphor = sem_init(1);
 
 //-----------------------------------------------------------------------------
 // bevor der test beginnt wird test_setup() einmal aufgerufen
@@ -47,12 +50,15 @@ void reader(long my_id) {
 
 
 int staebchen_nehmen(int my_id, int pos) {
+  //sem_p(mutex_semaphor);
   int n=staebchen[pos];
-  if (n==1) {
-    printf("%i nimmt %i\n", my_id, pos);
-    staebchen[pos]--; // ergibt 0, gibt aber chance zur fehlererkennung
+  if (n==1) { // Wenn Gabel an pos da ist
+    printf("my_id: %i nimmt Gabel an pos: %i\n", my_id, pos);
+    staebchen[pos] = 0; // ergibt 0, gibt aber chance zur fehlererkennung
+    //sem_v(mutex_semaphor);
     return 1;
-  } else if (n==0) {
+  } else if (n==0) { // Wenn keine Gabel an pos da ist
+    //sem_v(mutex_semaphor);
     return 0;
   } else {
     printf("Fehler: staebchen[%i]=%i\n", pos, n);
@@ -61,12 +67,14 @@ int staebchen_nehmen(int my_id, int pos) {
 }
 
 void staebchen_weglegen(int my_id, int pos) {
-  printf("%i legt %i weg\n", my_id, pos);
+  //sem_p(mutex_semaphor);
+  printf("my_id: %i legt pos: %i weg\n", my_id, pos);
   if (staebchen[pos]!=0) {
     printf("Fehler: staebchen[%i]=%i statt 0\n", pos, staebchen[pos]);
     exit(1);
   }
-  staebchen[pos]++; // ergibt 1, gibt aber chance zur fehlererkennung
+  staebchen[pos] = 1; // ergibt 1, gibt aber chance zur fehlererkennung
+  //sem_v(mutex_semaphor);
 }
 
 
@@ -78,27 +86,38 @@ void writer(long long_my_id) {
   int links=0;  // welche staebchen habe ich gerade
   int rechts=0;
   while (i>0) {
+    //sem_p(mutex_semaphor);
     // probiere zufaellig staebchen zu nehmen, die noch nicht da sind
-    if (!links && random()%10==7) links=staebchen_nehmen(my_id, my_id);
-    if (!rechts && random()%10==7) rechts=staebchen_nehmen(my_id, nxt);
+    if (!links && random()%10==7) {
+      //sem_p(mutex_semaphor);
+      links=staebchen_nehmen(my_id, my_id);
+      //sem_v(mutex_semaphor);
+    }
+    if (!rechts && random()%10==7) {
+      //sem_p(mutex_semaphor);
+      rechts=staebchen_nehmen(my_id, nxt);
+      //sem_v(mutex_semaphor);
+    }
 
     // wenn beide da sind: essen!
     if (links && rechts) {
-      printf("%i futtert jetzt\n", my_id);
+      //sem_p(mutex_semaphor);
+      printf("my_id: %i futtert jetzt\n", my_id);
       usleep(random()%200);
       i--;
       // staebchen wieder hinlegen
       staebchen_weglegen(my_id, my_id); links=0;
       staebchen_weglegen(my_id, nxt);   rechts=0;
+      //sem_v(mutex_semaphor);
     }
 
     // fuer die deadlock-erkennung melden, wenn ein staebchen von mir
     // belegt ist (beide koennen hier nicht belegt sein, dann wurde gegessen)
     have_one[my_id] = links || rechts;
     if (have_one[0]+have_one[1]+have_one[2]+have_one[3]+have_one[4]==5) {
-      //printf("Deadlock!\n");
+      printf("Deadlock!\n");
       //exit(1);
-      printf("%i gibt freiwillig ab\n", my_id);
+      printf("my_id: %i gibt freiwillig ab\n", my_id);
       if (links) {
         staebchen_weglegen(my_id, my_id); links=0;
       }
@@ -107,8 +126,11 @@ void writer(long long_my_id) {
       }
       have_one[my_id] = 0;
     }
+    
 
     // denken
+    //sem_p(mutex_semaphor);
     usleep(random()%200);
+    //sem_v(mutex_semaphor);
   }
 }

@@ -109,12 +109,18 @@ void writer(long my_id) {
     // while ((ringpuffer.schreib_index+1)%SIZE==ringpuffer.lese_index) {
        //do nothing
     // }
-    sem_p(mutex_semaphor);
-    ringpuffer.feld[ringpuffer.schreib_index] = i;
-    ringpuffer.schreib_index = (ringpuffer.schreib_index + 1) % SIZE;
-
-    show_animation(1, my_id, i);
-    sem_v(mutex_semaphor);
+    
+    while (1){ // Probiere dauerhaft, in den Ringbuffer zu schreiben
+        sem_p(mutex_semaphor);
+        if(!((ringpuffer.schreib_index+1)%SIZE==ringpuffer.lese_index)) { // Schreibe nur, falls frei ist
+	    ringpuffer.feld[ringpuffer.schreib_index] = i;
+	    ringpuffer.schreib_index = (ringpuffer.schreib_index + 1) % SIZE;
+	    show_animation(1, my_id, i);
+	    sem_v(mutex_semaphor); // Gebe schreib- Semaphore wieder frei
+	    break; // Versuch erfolgreich, wir haben geschrieben
+        }
+        sem_v(mutex_semaphor); // Gebe if- Semaphore wieder Frei
+    }
   }
 }
 
