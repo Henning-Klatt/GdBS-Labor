@@ -17,8 +17,13 @@
 
 volatile int staebchen[5]={1,1,1,1,1};
 volatile int have_one[5]={0,0,0,0,0}; // nur zur deadlock erkennung
-volatile semaphore mutex_semaphor; // Semaphore
+
+volatile semaphore mutex_semaphor[5]; // 5 Semaphoren
+
+
+
 //mutex_semaphor = sem_init(1);
+
 
 //-----------------------------------------------------------------------------
 // bevor der test beginnt wird test_setup() einmal aufgerufen
@@ -29,6 +34,11 @@ void test_setup(void) {
   readers=0;
   writers=5;
   srandom(time(NULL));
+  
+  for(int i = 0; i < 5; i++){
+	mutex_semaphor[i] = sem_init(1);
+	printf("Semaphore %i initialisiert!\n", i);
+}
 }
 
 //-----------------------------------------------------------------------------
@@ -50,15 +60,15 @@ void reader(long my_id) {
 
 
 int staebchen_nehmen(int my_id, int pos) {
-  //sem_p(mutex_semaphor);
+  sem_p(mutex_semaphor[pos]); // Entsprechende Semaphore vom Stäbchen blockieren
   int n=staebchen[pos];
   if (n==1) { // Wenn Gabel an pos da ist
     printf("my_id: %i nimmt Gabel an pos: %i\n", my_id, pos);
     staebchen[pos] = 0; // ergibt 0, gibt aber chance zur fehlererkennung
-    //sem_v(mutex_semaphor);
+    sem_v(mutex_semaphor[pos]);
     return 1;
   } else if (n==0) { // Wenn keine Gabel an pos da ist
-    //sem_v(mutex_semaphor);
+    sem_v(mutex_semaphor[pos]);
     return 0;
   } else {
     printf("Fehler: staebchen[%i]=%i\n", pos, n);
